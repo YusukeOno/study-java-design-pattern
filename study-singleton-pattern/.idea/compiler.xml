@@ -9,5 +9,8 @@
         <module name="study-singleton-pattern" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="study-singleton-pattern" target="17" />
+    </bytecodeTargetLevel>
   </component>
 </project>
