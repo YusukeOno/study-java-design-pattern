@@ -1,132 +1,108 @@
-# Adapter pattern
+# State pattern
 
 ## Purpose
 
-Adapterパターンでは、あるクラスのインターフェイスを、別のインターフェイスに変換することができる。
+状態を表すクラスを導入することで、状態による条件分岐をなくす。それにより、拡張性高めることができる。
 
 
 ## Class diagram
 
-### Inheritance
-
 ```mermaid
 classDiagram
-    Client-->Target
-    Target<|..Adapter
-    Adaptee<|--Adapter
+    
+    Context*-->State
+    State<|--ConcreteState1
+    State<|--ConcreteState2
 
-    class Client {
-    }
-
-    class Target {
-        <<interface>>
-        +targetMethod1()* void
-        +targetMethod2()* void
+    class Context {
+        -state: State
+        +require1()* void
+        +require2()* void
 
     }
 
-    class Adapter {
-        +targetMethod1()* void
-        +targetMethod2()* void
+    class State {
+        +method1()* void
+        +method2()* void
     }
 
-    class Adaptee {
+    class ConcreteState1 {
+        +methodA()* void
+        +methodB()* void
+    }
+
+    class ConcreteState2 {
         +methodA()* void
         +methodB()* void
     }
 ```
 
-### Delegate
 
-```mermaid
-classDiagram
-    Client-->Target
-    Target<|..Adapter
-    Adaptee<--*Adapter
+### Context
 
-    class Client {
-    }
+状態による処理を利用するAPIを定義する。また、現在の状態を表すConcreteStateのインスタンスをフィードとして持つ。
 
-    class Target {
-        <<interface>>
-        +targetMethod1()* void
-        +targetMethod2()* void
+Shopクラスがこれに該当する。
 
-    }
+### State
 
-    class Adapter {
-        -adaptee: Adaptee
-        +targetMethod1()* void
-        +targetMethod2()* void
-    }
+状態を表すインターフェイス。Contextクラスから呼び出されるインターフェイスを定義しておく。
 
-    class Adaptee {
-        +methodA()* void
-        +methodB()* void
-    }
-```
+WeekStateクラスがこれに該当する。
 
-### Target
+### ConcreteState
 
-Clientが必要なインターフェイスを表すクラス。
+具体的な状態を表すクラス。Stateクラスで定義されたインターフェイスを実装する。
 
-Printクラスがこれに該当する。
+WeekdaysStateとHolidayStateクラスがこれに該当する。
 
-### Client
-
-Targetを使うクラス。
-
- Mainクラスがこれに該当する。
-
-### Adaptee
-
-適合される側を表すクラス。
-
-Showクラスがこれに該当する。
-
-### Adapter
-
-Targetのサブクラス。適合を行うクラス。
-
-PrintAdapterクラスがこれに該当する。
 
 ## i.e.
 
-既存のクラスがあるなら、それを修正すれば済む話だが、なぜAdapterパターンを使うのか？
+Stateパターンでは、状態の追加が簡単だ。なぜなら、クラスを1つ追加すれば良い。ただし、状態遷移の部分に気をつけなければならない。
 
-まず、クラスを再利用できるならそれを再利用できた方が便利だし、開発も楽になる。それに、既存のクラスに問題がなければ、その部分はテストをする必要がなくなる。とくに、長年使われてきたようなクラスであれば、色々な箇所で利用されているかもしれない。だが、利用者が多いクラスに修正を入れるとリスクが多い。
+そして、状態に依存する処理を追加するのは大変だ。処理を追加するためには、インターフェイスにメソッドを追加するからだ。そうなると、そのサブクラスでメソッドの実装が必要になる。当然、そこのテストも必要になる。
 
-だから、クラスに手を入れるよりかは、Adapterパターンを使おうとなる。
+デザインパターンに限らず、インターフェイスを利用すると、クラスの追加は容易だが、メソッドの追加は大変。
+
 
 ## Usage Scenes
 
-Adapterパターンは以下のような場合に使用する。
+Stateパターンは以下のような場合に使用する。
 
-* 既存のクラスを利用したいが、必要なインターフェイスと一致していない場合
+### 状態による分岐を多数利用している場合
+
+たとえば、状態による分岐（if文など）が至る所にあるとする。しかも、分岐の条件は毎回同じ。これでは、変更にとても弱くなる。もしも状態を追加すると言った場合、影響箇所が多くなるからだ。Stateパターンを使えば、Contextクラスのインスタンスを生成して丸投げするだけで済む。
+
+### 状態を追加する可能性がある場合
+
+状態の追加自体は簡単だ。Stateを実装したクラスを用意すれば良い。
 
 ## Problem
 
-継承を使ったAdapterパターンでは、継承できるAdapteeが1つだけになる。
+サンプルコードでは平日状態と土曜状態の切り替えをConcreteStateであるWeekdaysStateとHolidayState内で行っていた。これにより、Shopクラスは状態遷移を管理する必要がなくなった。
+
+一方で、WeekdaysStateとHolidayStateの結びつきが強くなっている。状態を切り替えるためには、お互いのインスタンスを取得するメソッドを呼び合っているからだ。状態が2つだけならば、まだ切り替えも簡単だが、新しい状態を追加したい場合が少し大変になる。状態の切り替えをおこなっている部分について、両方のクラスを慎重に修正する必要があるからだ。
+
+では、状態の切り替えをContextクラスで行えばいいのでは？と考えたかもしれない。それもStateパターンの1つだが、サンプルコードにおけるShopクラスのsetDateメソッド内に、if文などで状態を切り替えるコードを入れる。ただし、その場合は、ContextとConcreteStateの結びつきが強くなる。
 
 
 ## Relationship to other patterns
 
-Adapterパターンと関連性があるのは以下のパターン。
+Stateパターンと関連性があるのは以下のパターン。
 
-### Bridgeパターン
+### Singletonパターン
 
-BridgeパターンとAdapterパターンは構造が似ているが、目的が異なる。Bridgeパターンは、機能と実装を分けることが目的。Adapterパターンは、異なるインターフェイスを変換することが目的。
+状態を表すインスタンスは1つで済むことが多い。その場合にSingletonパターンを使う。
 
-### Decoratorパターン
+### Flyweightパターン
 
-Decpratorパターンでは、インターフェイスを変更することなく、機能を追加できる。Adapterパターンでは、インターフェイスのずれを埋める。
+状態と表すインスタンスをFlyweightパターンを使って再利用（共有）することができる
 
 
 ## Conclusion
 
-* Adapterパターンでは、異なるインターフェイス同時を変換する。
-* 実装方法には以下の2つがある。
-  * 継承を使う
-  * 委譲を使う
+* Stateパターンを使うことで、状態の分岐をなくして、拡張性を高めることができる。
+* 状態を表すクラスが、状態ごとの処理も持つ。
 
 
